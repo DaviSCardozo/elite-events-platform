@@ -27,7 +27,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   })
 
   await app.register(helmet, { contentSecurityPolicy: false })
-  await app.register(cors, { origin: corsOrigin })
+  await app.register(cors, { origin: corsOrigin, credentials: true })
   await app.register(sensible)
 
   await app.register(db)
