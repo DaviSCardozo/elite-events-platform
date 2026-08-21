@@ -14,31 +14,15 @@ const createEventBodySchema = z.object({
 
 const eventRoutes: FastifyPluginAsync = async (app) => {
   // Pública: qualquer um pode ver os eventos publicados.
-  app.get(
-    '/events',
-    {
-      schema: {
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              data: { type: 'array', items: { type: 'object' } },
-              total: { type: 'integer' },
-            },
-          },
-        },
-      },
-    },
-    async () => {
-      const events = await app.prisma.event.findMany({ orderBy: { date: 'asc' } })
-      return { data: events, total: events.length }
-    },
-  )
+  // Sem schema.response aqui de propósito — um schema de resposta
+  // incompleto (sem listar os campos) faz o Fastify serializar objetos
+  // vazios, já que ele só devolve o que está explicitamente descrito.
+  app.get('/events', async () => {
+    const events = await app.prisma.event.findMany({ orderBy: { date: 'asc' } })
+    return { data: events, total: events.length }
+  })
 
   // Protegida: só ORGANIZER pode criar evento.
-  // Testa o RBAC com app.authorize — a lógica completa (integração TMDb,
-  // painel do organizador) vem no Card 5, este endpoint já valida o fluxo
-  // de permissão ponta a ponta.
   app.post(
     '/events',
     { preHandler: [app.authorize(['ORGANIZER'])] },

@@ -57,19 +57,31 @@ async function main() {
   // tmdbId e posterUrl aqui são fixos como placeholder — quando o service de
   // integração com a TMDb estiver pronto, isso pode ser substituído por uma
   // busca real na hora de criar o evento pelo organizador.
-  const evento = await prisma.event.create({
-    data: {
-      title: 'Vingadores: Ultimato — Sessão Especial',
-      description: 'Exibição especial com conteúdo extra pós-créditos.',
-      tmdbId: 299534,
-      posterUrl: 'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
-      date: new Date('2026-09-15T20:00:00Z'),
-      location: 'Cinemark Shopping Center — Sala 3',
-      price: 35.0,
-      capacidadeTotal: 50,
-      organizerId: organizador.id,
-    },
+  //
+  // upsert por título+organizador evita duplicar o evento a cada vez que o
+  // seed roda (lição aprendida: create puro gerou eventos duplicados no
+  // Dia 2, ver docs/registro-de-problemas.md item 4).
+  const tituloEventoSeed = 'Vingadores: Ultimato — Sessão Especial'
+
+  const eventoExistente = await prisma.event.findFirst({
+    where: { title: tituloEventoSeed, organizerId: organizador.id },
   })
+
+  const evento = eventoExistente
+    ? eventoExistente
+    : await prisma.event.create({
+        data: {
+          title: tituloEventoSeed,
+          description: 'Exibição especial com conteúdo extra pós-créditos.',
+          tmdbId: 299534,
+          posterUrl: 'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
+          date: new Date('2026-09-15T20:00:00Z'),
+          location: 'Cinemark Shopping Center — Sala 3',
+          price: 35.0,
+          capacidadeTotal: 50,
+          organizerId: organizador.id,
+        },
+      })
 
   console.log('Seed concluído:')
   console.log({ organizador: organizador.email, cliente1: cliente1.email, cliente2: cliente2.email, portaria: portaria.email })

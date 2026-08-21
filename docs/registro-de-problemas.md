@@ -61,4 +61,24 @@ em vez de depender do `npx prisma` resolver a versão correta sozinho.
 
 ---
 
+## 4. Schema de resposta do Fastify zerando os campos do evento
+
+**Quando:** Dia 2 (21/08), ao integrar a listagem de eventos no front-end.
+
+**O que aconteceu:** a rota `GET /events` tinha um `schema.response` definido
+como placeholder desde o scaffold inicial (`items: { type: 'object' }`, sem
+listar os campos). O Fastify usa esse schema para serializar a resposta de
+forma otimizada — como os campos não estavam descritos, ele devolvia objetos
+vazios (`{}`) mesmo com os dados corretos vindo do Prisma. O front-end
+mostrava "Data inválida" e "R$ NaN" porque os campos realmente não existiam
+na resposta, não por erro de formatação no React.
+
+**Decisão:** remover o `schema.response` da rota, já que ela deixou de ser
+um placeholder e passou a retornar dados reais do banco. Fica registrado como
+lição: ao usar validação de schema de resposta no Fastify, é preciso manter
+os campos sincronizados com o que a rota realmente retorna, ou removê-la
+quando não for mais necessária.
+
+---
+
 <!-- Próximos itens vão sendo adicionados aqui conforme aparecem -->
