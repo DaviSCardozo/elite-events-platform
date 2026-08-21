@@ -6,6 +6,9 @@ import { corsOrigin, env, isProduction } from './config/env.js'
 import db from './plugins/db.js'
 import eventRoutes from './routes/events.js'
 import healthRoutes from './routes/health.js'
+import prisma from './plugins/prisma.js'
+import auth from './plugins/auth.js'
+import sessionRoutes from './routes/sessions.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -27,9 +30,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(sensible)
 
   await app.register(db)
+  await app.register(prisma)
+  await app.register(auth)
 
   await app.register(healthRoutes)
   await app.register(eventRoutes, { prefix: '/api/v1' })
+  await app.register(sessionRoutes, { prefix: '/api/v1' })
 
   app.setNotFoundHandler((request, reply) => {
     reply.status(404).send({
