@@ -43,4 +43,22 @@ de caminho.
 
 ---
 
+## 3. `tsx` não reconhecido pelo comando de seed no Windows
+
+**Quando:** Dia 1 (20/08), ao configurar `npx prisma db seed`.
+
+**O que aconteceu:** o `tsx` está instalado como devDependency e funciona
+normalmente em `npm run dev`, mas quando o Prisma executa o comando de seed
+internamente (`tsx prisma/seed.ts`), o Windows não reconhecia o binário
+(`'tsx' não é reconhecido como um comando interno ou externo`). Também notei
+que o `npx prisma db seed` estava resolvendo uma versão diferente da
+instalada localmente (comportamento inconsistente do npx no Windows).
+
+**Decisão:** ajustar o comando de seed no `package.json` para
+`"seed": "npx tsx prisma/seed.ts"` (com `npx` explícito antes do `tsx`), e
+rodar o Prisma diretamente pelo binário local (`./node_modules/.bin/prisma`)
+em vez de depender do `npx prisma` resolver a versão correta sozinho.
+
+---
+
 <!-- Próximos itens vão sendo adicionados aqui conforme aparecem -->

@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Papéis fixos do sistema (RBAC simples, sem CASL) ---
+enum Role {
+  ORGANIZER
+  CUSTOMER
+  DOORMAN
+}
+
+// --- Status do pedido (checkout simulado) ---
+enum OrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// --- Status do ingresso na portaria ---
+enum TicketStatus {
+  VALID
+  USED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  // Um organizador pode ter vários eventos
+  eventsOrganized Event[] @relation("OrganizerEvents")
+
+  // Um cliente pode ter vários pedidos e ingressos
+  orders  Order[]
+  tickets Ticket[]
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  tmdbId      Int? // referência ao filme na TMDb, se aplicável
+  posterUrl   String?
+  date        DateTime
+  location    String
+  price       Decimal  @db.Decimal(10, 2)
+
+  // Capacidade total de ingressos. O nº de vendidos é DERIVADO
+  // contando os Tickets ligados a este evento (não guardamos contador),
+  // decisão tomada para evitar inconsistência entre um contador manual
+  // e a realidade das vendas.
+  capacidadeTotal Int
+
+  organizerId String
+  organizer   User   @relation("OrganizerEvents", fields: [organizerId], references: [id])
+
+  orders  Order[]
+  tickets Ticket[]
+
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  customerId String
+  customer   User        @relation(fields: [customerId], references: [id])
+  eventId    String
+  event      Event       @relation(fields: [eventId], references: [id])
+  quantity   Int
+  totalPrice Decimal     @db.Decimal(10, 2)
+  status     OrderStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id      String       @id @default(uuid())
+  // Código único embutido no QR. Não é o token JWT em si (esse é gerado
+  // na hora, assinado, e carrega este código no payload) — é o identificador
+  // interno que a portaria usa pra buscar o ingresso no banco.
+  code    String       @unique @default(uuid())
+  status  TicketStatus @default(VALID)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  validatedAt DateTime? // preenchido no momento em que a portaria valida
+  createdAt   DateTime  @default(now())
+}
