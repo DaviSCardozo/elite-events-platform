@@ -13,7 +13,8 @@ const envSchema = z.object({
     .string()
     .url()
     .default('postgres://postgres:postgres@localhost:5432/eventos_db'),
-    JWT_SECRET: z.string().min(10).default('chave-provisoria-trocar-em-producao'),
+  JWT_SECRET: z.string().min(10).default('chave-provisoria-trocar-em-producao'),
+  TMDB_API_KEY: z.string().min(10),
 })
 
 const parsed = envSchema.safeParse(process.env)

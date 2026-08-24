@@ -12,6 +12,7 @@ import sessionRoutes from './routes/sessions.js'
 import userRoutes from './routes/users.js'
 import orderRoutes from './routes/orders.js'
 import ticketRoutes from './routes/tickets.js'
+import tmdbRoutes from './routes/tmdb.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -43,6 +44,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(userRoutes, { prefix: '/api/v1' })
   await app.register(orderRoutes, { prefix: '/api/v1' })
   await app.register(ticketRoutes, { prefix: '/api/v1' })
+  await app.register(tmdbRoutes, { prefix: '/api/v1' })
 
   app.setNotFoundHandler((request, reply) => {
     reply.status(404).send({
