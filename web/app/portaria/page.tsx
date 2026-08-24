@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,10 +19,7 @@ interface Event {
 
 type ValidationResult = 'VALIDO' | 'JA_UTILIZADO' | 'EVENTO_ERRADO' | 'INVALIDO'
 
-const RESULT_CONFIG: Record<
-  ValidationResult,
-  { label: string; className: string }
-> = {
+const RESULT_CONFIG: Record<ValidationResult, { label: string; className: string }> = {
   VALIDO: { label: '✓ Ingresso Válido', className: 'bg-green-100 border-green-400 text-green-800' },
   JA_UTILIZADO: {
     label: '⚠ Ingresso Já Utilizado',
@@ -35,6 +32,8 @@ const RESULT_CONFIG: Record<
   },
 }
 
+const SCANNER_ELEMENT_ID = 'qr-reader'
+
 export default function PortariaPage() {
   const [checking, setChecking] = useState(true)
   const [user, setUser] = useState<SessionUser | null>(null)
@@ -45,6 +44,11 @@ export default function PortariaPage() {
   const [feedback, setFeedback] = useState<{ result: ValidationResult; message: string } | null>(
     null,
   )
+  const [scannerActive, setScannerActive] = useState(false)
+
+  // Guarda a instância do scanner entre renders para poder limpar (parar a
+  // câmera) sem depender de closures desatualizadas do useEffect.
+  const scannerRef = useRef<import('html5-qrcode').Html5QrcodeScanner | null>(null)
 
   useEffect(() => {
     apiFetch('/sessions/me')
@@ -58,15 +62,58 @@ export default function PortariaPage() {
       .finally(() => setChecking(false))
   }, [])
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
+  // Liga/desliga a câmera. html5-qrcode acessa navigator.mediaDevices, que
+  // só existe no navegador — por isso o import é dinâmico, dentro do
+  // useEffect, nunca no topo do arquivo (evitaria erro de SSR no Next.js).
+  useEffect(() => {
+    if (!scannerActive) {
+      scannerRef.current?.clear().catch(() => {})
+      scannerRef.current = null
+      return
+    }
+
+    let cancelled = false
+
+    import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
+      if (cancelled) return
+
+      const scanner = new Html5QrcodeScanner(
+        SCANNER_ELEMENT_ID,
+        { fps: 10, qrbox: 250 },
+        false,
+      )
+
+      scanner.render(
+        (decodedText) => {
+          setCode(decodedText)
+          setScannerActive(false)
+          void validateCode(decodedText)
+        },
+        () => {
+          // erro de leitura por frame (QR fora do quadro) — ignorado
+          // silenciosamente, é esperado acontecer o tempo todo até focar.
+        },
+      )
+
+      scannerRef.current = scanner
+    })
+
+    return () => {
+      cancelled = true
+      scannerRef.current?.clear().catch(() => {})
+      scannerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannerActive])
+
+  async function validateCode(codeToValidate: string) {
     setFeedback(null)
     setLoading(true)
 
     try {
       const res = await apiFetch('/tickets/validate', {
         method: 'POST',
-        body: JSON.stringify({ code, eventId: selectedEventId }),
+        body: JSON.stringify({ code: codeToValidate, eventId: selectedEventId }),
       })
 
       const data = await res.json()
@@ -77,6 +124,11 @@ export default function PortariaPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleManualSubmit(e: FormEvent) {
+    e.preventDefault()
+    await validateCode(code)
   }
 
   if (checking) {
@@ -129,8 +181,27 @@ export default function PortariaPage() {
             </select>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-2">
-            <Label htmlFor="code">Código do ingresso (digitação manual)</Label>
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant={scannerActive ? 'destructive' : 'default'}
+              className="w-full"
+              disabled={!selectedEventId}
+              onClick={() => setScannerActive((v) => !v)}
+            >
+              {scannerActive ? 'Parar câmera' : '📷 Ler QR pela câmera'}
+            </Button>
+            {scannerActive && <div id={SCANNER_ELEMENT_ID} className="w-full" />}
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            ou digite manualmente
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <form onSubmit={handleManualSubmit} className="space-y-2">
+            <Label htmlFor="code">Código do ingresso</Label>
             <Input
               id="code"
               required
@@ -145,7 +216,9 @@ export default function PortariaPage() {
           </form>
 
           {feedback && (
-            <div className={`rounded-md border p-4 text-center font-medium ${RESULT_CONFIG[feedback.result].className}`}>
+            <div
+              className={`rounded-md border p-4 text-center font-medium ${RESULT_CONFIG[feedback.result].className}`}
+            >
               <p>{RESULT_CONFIG[feedback.result].label}</p>
               <p className="text-sm font-normal">{feedback.message}</p>
             </div>
