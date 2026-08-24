@@ -14,12 +14,29 @@ const createEventBodySchema = z.object({
 
 const eventRoutes: FastifyPluginAsync = async (app) => {
   // Pública: qualquer um pode ver os eventos publicados.
-  // Sem schema.response aqui de propósito — um schema de resposta
-  // incompleto (sem listar os campos) faz o Fastify serializar objetos
-  // vazios, já que ele só devolve o que está explicitamente descrito.
   app.get('/events', async () => {
     const events = await app.prisma.event.findMany({ orderBy: { date: 'asc' } })
     return { data: events, total: events.length }
+  })
+
+  // Pública: detalhe de um evento, com disponibilidade calculada.
+  app.get('/events/:id', async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    const event = await app.prisma.event.findUnique({ where: { id } })
+
+    if (!event) {
+      return reply.status(404).send({
+        statusCode: 404,
+        error: 'Not Found',
+        message: 'Evento não encontrado',
+      })
+    }
+
+    const ticketsVendidos = await app.prisma.ticket.count({ where: { eventId: id } })
+    const disponiveis = event.capacidadeTotal - ticketsVendidos
+
+    return { event: { ...event, disponiveis } }
   })
 
   // Protegida: só ORGANIZER pode criar evento.

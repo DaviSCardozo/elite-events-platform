@@ -67,26 +67,28 @@ export default async function HomePage() {
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
-              <Card key={event.id} className="overflow-hidden">
-                {event.posterUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={event.posterUrl}
-                    alt={event.title}
-                    className="h-56 w-full object-cover"
-                  />
-                )}
-                <CardHeader>
-                  <CardTitle className="line-clamp-2">{event.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1 text-sm text-muted-foreground">
-                  <p>{formatDate(event.date)}</p>
-                  <p>{event.location}</p>
-                  <p className="text-base font-semibold text-foreground">
-                    {formatPrice(event.price)}
-                  </p>
-                </CardContent>
-              </Card>
+              <Link key={event.id} href={`/evento/${event.id}`}>
+                <Card className="overflow-hidden transition-shadow hover:shadow-md">
+                  {event.posterUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={event.posterUrl}
+                      alt={event.title}
+                      className="h-56 w-full object-cover"
+                    />
+                  )}
+                  <CardHeader>
+                    <CardTitle className="line-clamp-2">{event.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1 text-sm text-muted-foreground">
+                    <p>{formatDate(event.date)}</p>
+                    <p>{event.location}</p>
+                    <p className="text-base font-semibold text-foreground">
+                      {formatPrice(event.price)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
