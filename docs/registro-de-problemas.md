@@ -81,4 +81,21 @@ quando não for mais necessária.
 
 ---
 
+## 5. Limite de tamanho de parâmetro de URL bloqueando o token do QR
+
+**Quando:** Dia 3 (23-24/08), ao testar o link público do ingresso.
+
+**O que aconteceu:** o Fastify tem um limite padrão de ~100 caracteres para
+parâmetros de rota (`maxParamLength`), por segurança. O token JWT usado no
+link do QR (`/tickets/public/:token`) é bem mais longo que isso, então a
+requisição falhava com `414 — exceeding the max param length` antes mesmo de
+chegar na lógica da rota.
+
+**Decisão:** aumentar `maxParamLength` para 1000 na configuração do Fastify
+(`Fastify({ ..., maxParamLength: 1000 })`). Valor generoso o suficiente para
+qualquer JWT gerado no projeto, sem abrir mão da proteção contra parâmetros
+absurdamente longos.
+
+---
+
 <!-- Próximos itens vão sendo adicionados aqui conforme aparecem -->
