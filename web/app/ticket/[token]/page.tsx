@@ -1,7 +1,4 @@
-import { notFound } from 'next/navigation'
-import { QRCodeSVG } from 'qrcode.react'
-
-interface PublicTicket {
+interface TicketPublic {
   id: string
   code: string
   status: 'VALID' | 'USED'
@@ -9,13 +6,14 @@ interface PublicTicket {
     title: string
     date: string
     location: string
+    posterUrl: string | null
   }
   owner: {
     name: string
   }
 }
 
-async function getPublicTicket(token: string): Promise<PublicTicket | null> {
+async function getTicket(token: string): Promise<TicketPublic | null> {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3334/api/v1'
   const res = await fetch(`${API_URL}/tickets/public/${token}`, { cache: 'no-store' })
 
@@ -35,39 +33,50 @@ function formatDate(date: string) {
   })
 }
 
-export default async function PublicTicketPage({
+export default async function TicketPublicPage({
   params,
 }: {
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  const ticket = await getPublicTicket(token)
+  const ticket = await getTicket(token)
 
   if (!ticket) {
-    notFound()
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <p className="text-muted-foreground">
+          Link de ingresso inválido, expirado, ou o ingresso não existe.
+        </p>
+      </main>
+    )
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 px-6">
-      <div className="w-full max-w-sm rounded-lg border bg-background p-6 text-center shadow-sm">
-        <h1 className="text-lg font-semibold">{ticket.event.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {formatDate(ticket.event.date)} — {ticket.event.location}
+    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+      <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-sm">
+        {ticket.event.posterUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={ticket.event.posterUrl}
+            alt={ticket.event.title}
+            className="mb-4 w-full rounded-md object-cover"
+          />
+        )}
+        <h1 className="text-xl font-bold">{ticket.event.title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{formatDate(ticket.event.date)}</p>
+        <p className="text-sm text-muted-foreground">{ticket.event.location}</p>
+        <p className="mt-2 text-sm">
+          Ingresso de: <strong>{ticket.owner.name}</strong>
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Portador: {ticket.owner.name}</p>
-
-        <div className="my-4 flex justify-center rounded-md border bg-white p-4">
-          <QRCodeSVG value={token} size={180} />
-        </div>
-
-        <p
-          className={
-            ticket.status === 'USED'
-              ? 'text-sm font-medium text-amber-600'
-              : 'text-sm font-medium text-green-600'
-          }
-        >
-          {ticket.status === 'USED' ? 'Ingresso já utilizado' : 'Ingresso válido'}
+        <p className="mt-4 text-sm">
+          Status:{' '}
+          <span
+            className={
+              ticket.status === 'VALID' ? 'font-medium text-green-600' : 'font-medium text-muted-foreground'
+            }
+          >
+            {ticket.status === 'VALID' ? 'Válido' : 'Já utilizado'}
+          </span>
         </p>
       </div>
     </main>
