@@ -10,6 +10,7 @@ import prisma from './plugins/prisma.js'
 import auth from './plugins/auth.js'
 import sessionRoutes from './routes/sessions.js'
 import userRoutes from './routes/users.js'
+import orderRoutes from './routes/orders.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -38,6 +39,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(eventRoutes, { prefix: '/api/v1' })
   await app.register(sessionRoutes, { prefix: '/api/v1' })
   await app.register(userRoutes, { prefix: '/api/v1' })
+  await app.register(orderRoutes, { prefix: '/api/v1' })
 
   app.setNotFoundHandler((request, reply) => {
     reply.status(404).send({
