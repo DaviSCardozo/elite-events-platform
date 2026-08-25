@@ -21,10 +21,21 @@ const ticketRoutes: FastifyPluginAsync = async (app) => {
       // Cada ingresso recebe seu próprio token assinado — é ESSE token
       // (não o `code` puro) que vira o QR. Sem a assinatura JWT, qualquer
       // um poderia digitar um código aleatório e forjar um ingresso válido.
-      const ticketsComToken = tickets.map((ticket) => ({
-        ...ticket,
-        qrToken: app.jwt.sign({ ticketCode: ticket.code, type: 'ticket' }, { expiresIn: '365d' }),
-      }))
+      const ticketsComToken = tickets.map((ticket) => {
+        const ticketPayload = {
+          ticketCode: ticket.code,
+          type: 'ticket',
+        }
+
+        return {
+          ...ticket,
+          // Cast intencional: este token não é de autenticação de usuário
+          // (não tem `sub`/`role`, que o projeto exige no JwtPayload global
+          // por causa do token de login). É um payload próprio, só para
+          // identificar o ingresso de forma assinada — daí o cast explícito.
+          qrToken: app.jwt.sign(ticketPayload as any, { expiresIn: '365d' }),
+        }
+      })
 
       return { tickets: ticketsComToken }
     },

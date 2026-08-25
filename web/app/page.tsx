@@ -1,98 +1,218 @@
+'use client'
+
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { apiFetch } from '@/lib/api'
+
+interface SessionUser {
+  role: 'ORGANIZER' | 'CUSTOMER' | 'DOORMAN'
+}
 
 interface Event {
   id: string
   title: string
-  description: string | null
-  posterUrl: string | null
-  date: string
-  location: string
-  price: string // Prisma Decimal chega como string no JSON
-  capacidadeTotal: number
 }
 
-async function getEvents(): Promise<Event[]> {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3334/api/v1'
+type ValidationResult = 'VALIDO' | 'JA_UTILIZADO' | 'EVENTO_ERRADO' | 'INVALIDO'
 
-  const res = await fetch(`${API_URL}/events`, { cache: 'no-store' })
+const RESULT_CONFIG: Record<ValidationResult, { label: string; className: string }> = {
+  VALIDO: { label: '✓ Ingresso Válido', className: 'bg-green-100 border-green-400 text-green-800' },
+  JA_UTILIZADO: {
+    label: '⚠ Ingresso Já Utilizado',
+    className: 'bg-yellow-100 border-yellow-400 text-yellow-800',
+  },
+  INVALIDO: { label: '✕ Ingresso Inválido', className: 'bg-red-100 border-red-400 text-red-800' },
+  EVENTO_ERRADO: {
+    label: '⚠ Evento Errado',
+    className: 'bg-orange-100 border-orange-400 text-orange-800',
+  },
+}
 
-  if (!res.ok) {
-    return []
+const SCANNER_ELEMENT_ID = 'qr-reader'
+
+export default function PortariaPage() {
+  const [checking, setChecking] = useState(true)
+  const [user, setUser] = useState<SessionUser | null>(null)
+  const [events, setEvents] = useState<Event[]>([])
+  const [selectedEventId, setSelectedEventId] = useState('')
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [feedback, setFeedback] = useState<{ result: ValidationResult; message: string } | null>(
+    null,
+  )
+  const [scannerActive, setScannerActive] = useState(false)
+
+  const scannerRef = useRef<import('html5-qrcode').Html5QrcodeScanner | null>(null)
+
+  useEffect(() => {
+    apiFetch('/sessions/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        setUser(data?.user ?? null)
+        return apiFetch('/events')
+          .then((res) => res.json())
+          .then((d) => setEvents(d.data ?? []))
+      })
+      .finally(() => setChecking(false))
+  }, [])
+
+  useEffect(() => {
+    if (!scannerActive) {
+      scannerRef.current?.clear().catch(() => {})
+      scannerRef.current = null
+      return
+    }
+
+    let cancelled = false
+
+    import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
+      if (cancelled) return
+
+      const scanner = new Html5QrcodeScanner(SCANNER_ELEMENT_ID, { fps: 10, qrbox: 250 }, false)
+
+      scanner.render(
+        (decodedText) => {
+          setCode(decodedText)
+          setScannerActive(false)
+          void validateCode(decodedText)
+        },
+        () => {},
+      )
+
+      scannerRef.current = scanner
+    })
+
+    return () => {
+      cancelled = true
+      scannerRef.current?.clear().catch(() => {})
+      scannerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannerActive])
+
+  async function validateCode(codeToValidate: string) {
+    setFeedback(null)
+    setLoading(true)
+
+    try {
+      const res = await apiFetch('/tickets/validate', {
+        method: 'POST',
+        body: JSON.stringify({ code: codeToValidate, eventId: selectedEventId }),
+      })
+
+      const data = await res.json()
+      setFeedback({ result: data.result, message: data.message })
+      setCode('')
+    } catch {
+      setFeedback({ result: 'INVALIDO', message: 'Erro de conexão com o servidor' })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const json = await res.json()
-  return json.data
-}
+  async function handleManualSubmit(e: FormEvent) {
+    e.preventDefault()
+    await validateCode(code)
+  }
 
-function formatPrice(price: string) {
-  return Number(price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
+  if (checking) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </main>
+    )
+  }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-export default async function HomePage() {
-  const events = await getEvents()
+  if (!user || user.role !== 'DOORMAN') {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>Acesso restrito</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Link href="/login">
+              <Button className="w-full">Ir para login</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
 
   return (
-    <main className="min-h-screen bg-muted/40">
-      <header className="flex items-center justify-between border-b bg-background px-6 py-4">
-        <h1 className="text-xl font-semibold">Elite Events Platform</h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Entrar</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/cadastro">Criar conta</Link>
-          </Button>
-        </div>
-      </header>
-
-      <section className="mx-auto max-w-5xl px-6 py-10">
-        <h2 className="mb-6 text-2xl font-bold">Eventos em cartaz</h2>
-
-        {events.length === 0 ? (
-          <p className="text-muted-foreground">
-            Nenhum evento publicado no momento. Volte em breve.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
-              <Link key={event.id} href={`/evento/${event.id}`}>
-                <Card className="overflow-hidden transition-shadow hover:shadow-md">
-                  {event.posterUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={event.posterUrl}
-                      alt={event.title}
-                      className="h-56 w-full object-cover"
-                    />
-                  )}
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2">{event.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-1 text-sm text-muted-foreground">
-                    <p>{formatDate(event.date)}</p>
-                    <p>{event.location}</p>
-                    <p className="text-base font-semibold text-foreground">
-                      {formatPrice(event.price)}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Validação de Ingressos — Portaria</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="event">Evento desta portaria</Label>
+            <select
+              id="event"
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              value={selectedEventId}
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              required
+            >
+              <option value="">Selecione o evento</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-      </section>
+
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant={scannerActive ? 'destructive' : 'default'}
+              className="w-full"
+              disabled={!selectedEventId}
+              onClick={() => setScannerActive((v) => !v)}
+            >
+              {scannerActive ? 'Parar câmera' : '📷 Ler QR pela câmera'}
+            </Button>
+            {scannerActive && <div id={SCANNER_ELEMENT_ID} className="w-full" />}
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            ou digite manualmente
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <form onSubmit={handleManualSubmit} className="space-y-2">
+            <Label htmlFor="code">Código do ingresso</Label>
+            <Input
+              id="code"
+              required
+              disabled={!selectedEventId}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Cole ou digite o código do ingresso"
+            />
+            <Button type="submit" className="w-full" disabled={loading || !selectedEventId}>
+              {loading ? 'Validando...' : 'Validar ingresso'}
+            </Button>
+          </form>
+
+          {feedback && (
+            <div
+              className={`rounded-md border p-4 text-center font-medium ${RESULT_CONFIG[feedback.result].className}`}
+            >
+              <p>{RESULT_CONFIG[feedback.result].label}</p>
+              <p className="text-sm font-normal">{feedback.message}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </main>
   )
 }

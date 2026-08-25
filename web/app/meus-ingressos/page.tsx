@@ -76,9 +76,9 @@ export default function MeusIngressosPage() {
             <CardTitle>Acesso restrito</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/login">Ir para login</Link>
-            </Button>
+            <Link href="/login">
+              <Button className="w-full">Ir para login</Button>
+            </Link>
           </CardContent>
         </Card>
       </main>

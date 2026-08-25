@@ -46,8 +46,6 @@ export default function PortariaPage() {
   )
   const [scannerActive, setScannerActive] = useState(false)
 
-  // Guarda a instância do scanner entre renders para poder limpar (parar a
-  // câmera) sem depender de closures desatualizadas do useEffect.
   const scannerRef = useRef<import('html5-qrcode').Html5QrcodeScanner | null>(null)
 
   useEffect(() => {
@@ -62,9 +60,6 @@ export default function PortariaPage() {
       .finally(() => setChecking(false))
   }, [])
 
-  // Liga/desliga a câmera. html5-qrcode acessa navigator.mediaDevices, que
-  // só existe no navegador — por isso o import é dinâmico, dentro do
-  // useEffect, nunca no topo do arquivo (evitaria erro de SSR no Next.js).
   useEffect(() => {
     if (!scannerActive) {
       scannerRef.current?.clear().catch(() => {})
@@ -77,11 +72,7 @@ export default function PortariaPage() {
     import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
       if (cancelled) return
 
-      const scanner = new Html5QrcodeScanner(
-        SCANNER_ELEMENT_ID,
-        { fps: 10, qrbox: 250 },
-        false,
-      )
+      const scanner = new Html5QrcodeScanner(SCANNER_ELEMENT_ID, { fps: 10, qrbox: 250 }, false)
 
       scanner.render(
         (decodedText) => {
@@ -89,10 +80,7 @@ export default function PortariaPage() {
           setScannerActive(false)
           void validateCode(decodedText)
         },
-        () => {
-          // erro de leitura por frame (QR fora do quadro) — ignorado
-          // silenciosamente, é esperado acontecer o tempo todo até focar.
-        },
+        () => {},
       )
 
       scannerRef.current = scanner
@@ -147,9 +135,9 @@ export default function PortariaPage() {
             <CardTitle>Acesso restrito</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/login">Ir para login</Link>
-            </Button>
+            <Link href="/login">
+              <Button className="w-full">Ir para login</Button>
+            </Link>
           </CardContent>
         </Card>
       </main>

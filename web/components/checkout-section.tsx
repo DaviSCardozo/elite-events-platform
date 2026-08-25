@@ -75,9 +75,9 @@ export function CheckoutSection({ eventId, price, disponiveis }: CheckoutSection
     return (
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">Entre para comprar ingressos.</p>
-        <Button asChild>
-          <Link href="/login">Entrar</Link>
-        </Button>
+        <Link href="/login">
+          <Button>Entrar</Button>
+        </Link>
       </div>
     )
   }

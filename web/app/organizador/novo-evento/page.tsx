@@ -35,13 +35,11 @@ export default function NovoEventoPage() {
   const [checking, setChecking] = useState(true)
   const [user, setUser] = useState<SessionUser | null>(null)
 
-  // Busca no catálogo da TMDb
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState<TmdbMovie[]>([])
   const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null)
 
-  // Dados do evento
   const [location, setLocation] = useState('')
   const [date, setDate] = useState('')
   const [price, setPrice] = useState('')
