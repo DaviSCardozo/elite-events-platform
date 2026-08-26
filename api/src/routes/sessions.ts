@@ -74,7 +74,11 @@ const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // Logout: apaga o cookie.
   app.delete('/sessions', async (_request, reply) => {
-    reply.clearCookie('session_token', { path: '/' })
+    reply.clearCookie('session_token', {
+      path: '/',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    })
     return reply.status(204).send()
   })
 }
