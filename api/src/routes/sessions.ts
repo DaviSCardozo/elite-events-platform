@@ -48,7 +48,7 @@ const sessionRoutes: FastifyPluginAsync = async (app) => {
     reply.setCookie('session_token', token, {
       path: '/',
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 7, // 7 dias, em segundos
     })
