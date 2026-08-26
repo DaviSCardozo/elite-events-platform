@@ -162,6 +162,12 @@ fluxo de trabalho foi:
 5. Revisão de código antes de cada commit importante, e uma auditoria final
    do escopo contra o edital (foi nessa auditoria que a integração real com
    a TMDb, inicialmente esquecida, foi identificada e implementada).
+6. Como o desenvolvimento se estendeu por vários dias e sessões de
+   conversa, a continuidade de contexto entre elas foi mantida através de
+   resumos técnicos estruturados em formato de hand-off (objetivo, o que
+   foi concluído, estado atual da arquitetura, próximos passos
+   prioritários), colados no início de cada nova sessão — uma prática
+   emprestada de rotinas reais de handoff entre desenvolvedores.
 
 **O que foi decidido e validado manualmente pelo desenvolvedor, em cada
 etapa:**
@@ -193,5 +199,17 @@ repositório como evidência desse processo.
 
 ## Link do deploy
 
-Não realizado — projeto avaliado em ambiente local, conforme instruções de
-execução acima.
+- **Front (Vercel):** https://elite-events-platform.vercel.app
+- **Back (Render):** https://elite-events-api.onrender.com
+
+**Nota sobre cold start:** o backend está no plano gratuito da Render, que
+"hiberna" o serviço após alguns minutos de inatividade. A primeira
+requisição depois de um período parado pode levar de 30 a 60 segundos para
+responder (o serviço "acordando") — isso é comportamento esperado do plano
+gratuito, não é bug da aplicação.
+
+**Nota sobre navegação anônima:** alguns navegadores (Chrome, por padrão)
+bloqueiam cookies de terceiros em janelas anônimas/privadas, o que pode
+impedir o login de persistir corretamente já que o front (Vercel) e o back
+(Render) estão em domínios diferentes. Recomenda-se testar em uma janela
+normal do navegador.
