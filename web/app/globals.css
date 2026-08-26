@@ -48,39 +48,43 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Paleta neon inspirada na Verzel: fundo escuro azulado, verde-limão como
+   cor primária, ciano como destaque. Editamos só o :root (tema ativo hoje,
+   já que o app não tem alternância clara/escura implementada) — o bloco
+   .dark abaixo fica intocado, sem risco de quebrar nada. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: oklch(0.13 0.015 260);
+  --foreground: oklch(0.97 0.01 100);
+  --card: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.97 0.01 100);
+  --popover: oklch(0.18 0.02 260);
+  --popover-foreground: oklch(0.97 0.01 100);
+  --primary: oklch(0.77 0.2 130);
+  --primary-foreground: oklch(0.15 0.02 130);
+  --secondary: oklch(0.22 0.02 260);
+  --secondary-foreground: oklch(0.97 0.01 100);
+  --muted: oklch(0.22 0.02 260);
+  --muted-foreground: oklch(0.65 0.02 260);
+  --accent: oklch(0.715 0.143 215);
+  --accent-foreground: oklch(0.15 0.02 215);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.715 0.143 215);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.16 0.02 260);
+  --sidebar-foreground: oklch(0.97 0.01 100);
+  --sidebar-primary: oklch(0.77 0.2 130);
+  --sidebar-primary-foreground: oklch(0.15 0.02 130);
+  --sidebar-accent: oklch(0.22 0.02 260);
+  --sidebar-accent-foreground: oklch(0.97 0.01 100);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.715 0.143 215);
 }
 
 .dark {
@@ -127,4 +131,20 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Efeito de brilho neon — aplique via className="glow-primary" em botões
+   de destaque ou cards importantes (ex: card do QR code). Opcional, não
+   afeta nenhum componente que já existe até você adicionar a classe. */
+@layer utilities {
+  .glow-primary {
+    box-shadow: 0 0 20px 2px oklch(0.77 0.2 130 / 35%);
+  }
+  .glow-accent {
+    box-shadow: 0 0 20px 2px oklch(0.715 0.143 215 / 35%);
+  }
+}
+select option {
+  color: #0a0a0a;
+  background-color: #ffffff;
 }
